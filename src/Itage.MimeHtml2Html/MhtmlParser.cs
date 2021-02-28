@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AngleSharp;
@@ -27,7 +28,7 @@ namespace Itage.MimeHtml2Html
             _logger = logger;
         }
 
-        public async Task<string?> ToHtml(byte[] contents, CancellationToken cancellationToken)
+        public async Task<byte[]?> ToHtml(byte[] contents, CancellationToken cancellationToken)
         {
             using var ms = new MemoryStream(contents);
             MimeMessage? message = await MimeMessage.LoadAsync(ms, cancellationToken);
@@ -57,7 +58,7 @@ namespace Itage.MimeHtml2Html
             var processor = new DocumentPostprocessor(_options, doc, baseUri, chunks, _logger);
             doc = processor.Run();
 
-            return doc.DocumentElement.ToHtml(new MinifyMarkupFormatter());
+            return Encoding.UTF8.GetBytes(doc.DocumentElement.ToHtml(new MinifyMarkupFormatter()));
         }
     }
 }

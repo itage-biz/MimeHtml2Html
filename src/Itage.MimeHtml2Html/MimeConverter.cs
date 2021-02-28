@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -8,10 +7,10 @@ namespace Itage.MimeHtml2Html
 {
     public class MimeConverter
     {
-        private readonly ILogger<MimeConverter> _logger;
+        private readonly ILogger _logger;
         private readonly MimeConversionOptions _options;
 
-        public MimeConverter(ILogger<MimeConverter> logger, MimeConversionOptions? options = null)
+        public MimeConverter(ILogger logger, MimeConversionOptions? options = null)
         {
             _logger = logger;
             _options = options ?? new MimeConversionOptions();
@@ -29,19 +28,18 @@ namespace Itage.MimeHtml2Html
             using var ms = new MemoryStream();
             await sourceStream.CopyToAsync(ms);
 
-            string? result = await Convert(ms.GetBuffer());
+            byte[]? result = await Convert(ms.GetBuffer());
             ms.Dispose();
+
             if (result == null)
             {
                 return false;
             }
-
-            byte[] convertedData = Encoding.UTF8.GetBytes(result);
-            await destinationStream.WriteAsync(convertedData, 0, convertedData.Length);
+            await destinationStream.WriteAsync(result, 0, result.Length);
             return true;
         }
 
-        public async Task<string?> Convert(byte[] mhtmlData)
+        public async Task<byte[]?> Convert(byte[] mhtmlData)
         {
             var converter = new MhtmlParser(_options, _logger);
             return await converter.ToHtml(mhtmlData, CancellationToken.None);
