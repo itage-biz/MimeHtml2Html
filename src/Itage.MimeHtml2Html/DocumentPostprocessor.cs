@@ -121,57 +121,65 @@ namespace Itage.MimeHtml2Html
             IImageInfo? imageInfo = Image.Identify(chunk.Body);
             if (imageInfo == null)
             {
-                _logger.LogError("Cannot determine image@{Location}; {Type}", chunk.Location, chunk.MimeType);
+                _logger.LogInformation("Cannot determine image@{Location}; {Type}", chunk.Location, chunk.MimeType);
                 return chunk.AsDataUri();
             }
 
-            using Image<Rgba32> image = Image.Load<Rgba32>(chunk.Body, out IImageFormat format);
-            using var ms = new MemoryStream();
-
-            switch (format.DefaultMimeType)
+            try
             {
-                case "image/jpeg":
-                case "image/jpg":
-                    image.SaveAsJpeg(ms, new JpegEncoder
-                    {
-                        Quality = _options.JpegCompressorQuality
-                    });
-                    _logger.LogInformation("Compressed {Name} from {Old} to {New}", chunk.Location, chunk.Body.Length, ms.Length);
-                    return Encode(ms.ToArray(), format.DefaultMimeType);
-                case "image/png" when _options.UglifyPng && !HasTransparency(image):
-                    image.SaveAsJpeg(ms, new JpegEncoder
-                    {
-                        Quality = _options.JpegCompressorQuality
-                    });
-                    _logger.LogInformation("Compressed {Name} from {Old} to {New}", chunk.Location, chunk.Body.Length, ms.Length);
-                    return Encode(ms.ToArray(), "image/jpeg");
-                case "image/png":
+                using Image<Rgba32> image = Image.Load<Rgba32>(chunk.Body, out IImageFormat format);
+
+                using var ms = new MemoryStream();
+
+                switch (format.DefaultMimeType)
                 {
-                    var pngEncode = new PngEncoder
-                    {
-                        Quantizer = new WuQuantizer(new QuantizerOptions
+                    case "image/jpeg":
+                    case "image/jpg":
+                        image.SaveAsJpeg(ms, new JpegEncoder
                         {
-                            MaxColors = _options.MaxPngColors,
-                        }),
-                        IgnoreMetadata = true,
-                        CompressionLevel = PngCompressionLevel.BestCompression,
-                        TransparentColorMode = PngTransparentColorMode.Preserve
-                    };
-                    image.SaveAsPng(ms, pngEncode);
-                    _logger.LogInformation("Compressed {Name} from {Old} to {New}", chunk.Location, chunk.Body.Length, ms.Length);
-                    string result = Encode(ms.ToArray(), format.DefaultMimeType);
-                    using var ms1 = new MemoryStream();
-                    image.SaveAsJpeg(ms1, new JpegEncoder
+                            Quality = _options.JpegCompressorQuality
+                        });
+                        _logger.LogInformation("Compressed {Name} from {Old} to {New}", chunk.Location, chunk.Body.Length, ms.Length);
+                        return Encode(ms.ToArray(), format.DefaultMimeType);
+                    case "image/png" when _options.UglifyPng && !HasTransparency(image):
+                        image.SaveAsJpeg(ms, new JpegEncoder
+                        {
+                            Quality = _options.JpegCompressorQuality
+                        });
+                        _logger.LogInformation("Compressed {Name} from {Old} to {New}", chunk.Location, chunk.Body.Length, ms.Length);
+                        return Encode(ms.ToArray(), "image/jpeg");
+                    case "image/png":
                     {
-                        Quality = 30
-                    });
-                    _logger.LogWarning("Compressed JPG {Name} from {Old} to {New}", chunk.Location,
-                        chunk.Body.Length, ms1.Length);
-                    return result;
+                        var pngEncode = new PngEncoder
+                        {
+                            Quantizer = new WuQuantizer(new QuantizerOptions
+                            {
+                                MaxColors = _options.MaxPngColors,
+                            }),
+                            IgnoreMetadata = true,
+                            CompressionLevel = PngCompressionLevel.BestCompression,
+                            TransparentColorMode = PngTransparentColorMode.Preserve
+                        };
+                        image.SaveAsPng(ms, pngEncode);
+                        _logger.LogInformation("Compressed {Name} from {Old} to {New}", chunk.Location, chunk.Body.Length, ms.Length);
+                        string result = Encode(ms.ToArray(), format.DefaultMimeType);
+                        using var ms1 = new MemoryStream();
+                        image.SaveAsJpeg(ms1, new JpegEncoder
+                        {
+                            Quality = 30
+                        });
+                        _logger.LogWarning("Compressed JPG {Name} from {Old} to {New}", chunk.Location,
+                            chunk.Body.Length, ms1.Length);
+                        return result;
+                    }
                 }
-                default:
-                    return Encode(chunk.Body, chunk.MimeType);
             }
+            catch (Exception e)
+            {
+                _logger.LogInformation(e, "Cannot open image as RGB32; returning default");
+            }
+
+            return chunk.AsDataUri();
         }
 
         private bool HasTransparency(Image<Rgba32> image)
