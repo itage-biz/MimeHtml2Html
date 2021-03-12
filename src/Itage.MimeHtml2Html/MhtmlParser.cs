@@ -60,7 +60,10 @@ namespace Itage.MimeHtml2Html
 
             string html = doc.DocumentElement
                 .ToHtml(_options.CompressHtml
-                    ? new MinifyMarkupFormatter()
+                    ? new MinifyMarkupFormatter
+                    {
+                        ShouldKeepAttributeQuotes = true
+                    }
                     : new PrettyMarkupFormatter()
                 );
             return Encoding.UTF8.GetBytes(html);

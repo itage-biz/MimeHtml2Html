@@ -4,7 +4,7 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
-        <Version>0.0.3</Version>
+        <Version>0.0.4</Version>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
@@ -13,7 +13,7 @@
         <Description>MHTML to HTML Converter</Description>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageProjectUrl>https://github.com/itage-biz/MimeHtml2Html</PackageProjectUrl>
-        <PackageLicenseUrl>https://github.com/itage-biz/MimeHtml2Html/blob/master/LICENSE</PackageLicenseUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <Copyright>2020</Copyright>
         <PackageTags>MHTML, MHT</PackageTags>
         <RepositoryType>git</RepositoryType>

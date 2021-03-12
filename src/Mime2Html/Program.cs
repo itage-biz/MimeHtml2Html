@@ -17,7 +17,10 @@ namespace Mime2Html
             Console.OutputEncoding = Encoding.Unicode;
 
             ILoggerFactory loggerFactory = LoggerFactory.Create(o => { o.AddConsole().SetMinimumLevel(LogLevel.Debug); });
-            var converter = new MimeConverter(null, loggerFactory.CreateLogger<MimeConverter>());
+            var converter = new MimeConverter(new MimeConversionOptions
+            {
+                CompressHtml = true
+            }, loggerFactory.CreateLogger<MimeConverter>());
             string outputFilename = Path.ChangeExtension(Source, "html");
             using FileStream sourceStream = File.OpenRead(Source);
             using FileStream destinationStream = File.Open(outputFilename, FileMode.Create);
