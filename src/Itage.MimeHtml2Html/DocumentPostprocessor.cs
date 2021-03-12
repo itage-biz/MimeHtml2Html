@@ -2,20 +2,23 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using AngleSharp.Dom;
 using Microsoft.Extensions.Logging;
 using NUglify;
 using NUglify.Css;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace Itage.MimeHtml2Html
 {
     internal class DocumentPostprocessor
     {
-        private static readonly char PaddingMarker = Encoding.UTF8.GetString(new byte[] {0xef, 0xbf, 0xbd})[0];
+        // private static readonly char PaddingMarker = Encoding.UTF8.GetString(new byte[] {0xef, 0xbf, 0xbd})[0];
         private readonly MimeConversionOptions _options;
         private readonly IDocument _document;
         private readonly Uri _baseUri;
@@ -52,7 +55,7 @@ namespace Itage.MimeHtml2Html
             foreach (IElement? styleTag in styles)
             {
                 styleTag.InnerHtml = new Regex(@"url\((['""]?)(.*?)\1\)")
-                    .Replace(styleTag.InnerHtml, match => EvaluateMatch(match, _baseUri));
+                    .Replace(styleTag.InnerHtml, match => EvaluateCssUrlMatch(match, _baseUri));
             }
         }
 
@@ -65,6 +68,7 @@ namespace Itage.MimeHtml2Html
                 {
                     continue;
                 }
+
                 var imgUri = new Uri(_baseUri, src);
                 MimePartChunk? imgChunk = _chunks.FirstOrDefault(r => r.Location == imgUri);
 
@@ -98,12 +102,11 @@ namespace Itage.MimeHtml2Html
 
                 IElement style = _document.CreateElement("style");
                 string cssText = styleChunk.AsText()
-                    .Replace(PaddingMarker, ' ')
+                    // .Replace(PaddingMarker, ' ')
                     .Trim();
                 cssText = new Regex(@"url\((['""]?)(.*?)\1\)").Replace(cssText,
-                    match => EvaluateMatch(match, styleChunk.Location));
+                    match => EvaluateCssUrlMatch(match, styleChunk.Location));
                 style.InnerHtml = cssText;
-                style.InnerHtml = style.InnerHtml.Replace(PaddingMarker, ' ').Trim();
                 if (_options.CompressCss)
                 {
                     style.InnerHtml = CompressCss(style.InnerHtml);
@@ -122,16 +125,80 @@ namespace Itage.MimeHtml2Html
                 return chunk.AsDataUri();
             }
 
-            using Image image = Image.Load(chunk.Body);
+            using Image<Rgba32> image = Image.Load<Rgba32>(chunk.Body, out IImageFormat format);
             using var ms = new MemoryStream();
-            image.SaveAsJpeg(ms, new JpegEncoder
+
+            switch (format.DefaultMimeType)
             {
-                Quality = 50
-            });
-            return "data:image/jpeg;base64," + Convert.ToBase64String(ms.GetBuffer());
+                case "image/jpeg":
+                case "image/jpg":
+                    image.SaveAsJpeg(ms, new JpegEncoder
+                    {
+                        Quality = _options.JpegCompressorQuality
+                    });
+                    _logger.LogInformation("Compressed {Name} from {Old} to {New}", chunk.Location, chunk.Body.Length, ms.Length);
+                    return Encode(ms.ToArray(), format.DefaultMimeType);
+                case "image/png" when _options.UglifyPng && !HasTransparency(image):
+                    image.SaveAsJpeg(ms, new JpegEncoder
+                    {
+                        Quality = _options.JpegCompressorQuality
+                    });
+                    _logger.LogInformation("Compressed {Name} from {Old} to {New}", chunk.Location, chunk.Body.Length, ms.Length);
+                    return Encode(ms.ToArray(), "image/jpeg");
+                case "image/png":
+                {
+                    var pngEncode = new PngEncoder
+                    {
+                        Quantizer = new WuQuantizer(new QuantizerOptions
+                        {
+                            MaxColors = _options.MaxPngColors,
+                        }),
+                        IgnoreMetadata = true,
+                        CompressionLevel = PngCompressionLevel.BestCompression,
+                        TransparentColorMode = PngTransparentColorMode.Preserve
+                    };
+                    image.SaveAsPng(ms, pngEncode);
+                    _logger.LogInformation("Compressed {Name} from {Old} to {New}", chunk.Location, chunk.Body.Length, ms.Length);
+                    string result = Encode(ms.ToArray(), format.DefaultMimeType);
+                    using var ms1 = new MemoryStream();
+                    image.SaveAsJpeg(ms1, new JpegEncoder
+                    {
+                        Quality = 30
+                    });
+                    _logger.LogWarning("Compressed JPG {Name} from {Old} to {New}", chunk.Location,
+                        chunk.Body.Length, ms1.Length);
+                    return result;
+                }
+                default:
+                    return Encode(chunk.Body, chunk.MimeType);
+            }
         }
 
-        private string CompressCss(string style)
+        private bool HasTransparency(Image<Rgba32> image)
+        {
+            for (var y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> row = image.GetPixelRowSpan(y);
+                for (var x = 0; x < image.Width; x++)
+                {
+                    Rgba32 pixel = row[x];
+
+                    if (pixel.A < byte.MaxValue)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static string Encode(byte[] buffer, string mimeType)
+        {
+            return $"data:{mimeType};base64," + Convert.ToBase64String(buffer);
+        }
+
+        private static string CompressCss(string style)
         {
             return Uglify.Css(style, new CssSettings
             {
@@ -152,7 +219,7 @@ namespace Itage.MimeHtml2Html
             }
         }
 
-        private string EvaluateMatch(Match match, Uri baseUri)
+        private string EvaluateCssUrlMatch(Match match, Uri baseUri)
         {
             if (baseUri.AbsoluteUri.StartsWith("cid:"))
             {

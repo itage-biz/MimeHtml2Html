@@ -42,7 +42,7 @@ namespace Itage.MimeHtml2Html
                 {
                     using var outStream = new MemoryStream();
                     part.Content.DecodeTo(outStream, cancellationToken);
-                    return new MimePartChunk(part.ContentType.MimeType, part.ContentLocation, outStream.GetBuffer());
+                    return new MimePartChunk(part.ContentType.MimeType, part.ContentLocation, outStream.ToArray());
                 })
                 .ToList();
             Uri baseUri = message.Body.ContentLocation ?? new Uri("http://localhost/");
@@ -58,7 +58,12 @@ namespace Itage.MimeHtml2Html
             var processor = new DocumentPostprocessor(_options, doc, baseUri, chunks, _logger);
             doc = processor.Run();
 
-            return Encoding.UTF8.GetBytes(doc.DocumentElement.ToHtml(new MinifyMarkupFormatter()));
+            string html = doc.DocumentElement
+                .ToHtml(_options.CompressHtml
+                    ? new MinifyMarkupFormatter()
+                    : new PrettyMarkupFormatter()
+                );
+            return Encoding.UTF8.GetBytes(html);
         }
     }
 }

@@ -25,5 +25,7 @@ namespace Itage.MimeHtml2Html
         {
             return "data:" + MimeType + ";base64," + Convert.ToBase64String(Body);
         }
+
+        public byte[] AsByteArray() => Body;
     }
 }

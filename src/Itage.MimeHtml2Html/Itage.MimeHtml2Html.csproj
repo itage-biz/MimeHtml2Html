@@ -4,7 +4,8 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
-        <Version>0.0.2</Version>
+        <Version>0.0.3</Version>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -23,7 +24,7 @@
         <PackageReference Include="AngleSharp" Version="0.14.0"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0"/>
         <PackageReference Include="MimeKitLite" Version="2.10.1"/>
-        <PackageReference Include="NUglify" Version="1.13.3"/>
+        <PackageReference Include="NUglify" Version="1.13.6"/>
         <PackageReference Include="SixLabors.ImageSharp" Version="1.0.3"/>
     </ItemGroup>
 </Project>
