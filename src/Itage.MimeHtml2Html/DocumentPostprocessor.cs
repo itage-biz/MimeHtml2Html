@@ -239,7 +239,10 @@ namespace Itage.MimeHtml2Html
                 return match.Groups[0].Value;
             }
 
-            var uri = new Uri(baseUri, match.Groups[2].Value);
+            if (!Uri.TryCreate(baseUri, match.Groups[2].Value, out var uri))
+            {
+                return match.Groups[0].Value;
+            }
 
             MimePartChunk? firstMatchingChunk = _chunks.FirstOrDefault(c => c.Location == uri);
             if (firstMatchingChunk == null)
