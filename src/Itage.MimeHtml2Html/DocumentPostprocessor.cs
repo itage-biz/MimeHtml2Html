@@ -63,8 +63,8 @@ namespace Itage.MimeHtml2Html
         {
             foreach (var imageTag in images)
             {
-                string src = imageTag.GetAttribute("src");
-                if (string.IsNullOrWhiteSpace(src))
+                string? src = imageTag.GetAttribute("src"); 
+                if (src == null)
                 {
                     continue;
                 }
@@ -91,9 +91,9 @@ namespace Itage.MimeHtml2Html
         {
             foreach (IElement styleTag in styles.ToList())
             {
-                string styleUri = styleTag.GetAttribute("href");
+                string styleUri = styleTag.GetAttribute("href") ?? "";
                 MimePartChunk? styleChunk =
-                    _chunks.FirstOrDefault(r => r.Location != null && r.Location.AbsoluteUri == styleUri);
+                    _chunks.FirstOrDefault(r => r.Location.AbsoluteUri == styleUri);
                 if (styleChunk == null)
                 {
                     _logger.LogWarning("Cannot find mime part for `{StyleUri}`", styleUri);

@@ -72,8 +72,8 @@ namespace Itage.MimeHtml2Html
 
         private async Task<IDocument?> LoadDocument(string body, CancellationToken cancellationToken = new())
         {
-            IDocument? document = await _browsingContext.OpenAsync(req => req.Content(body), cancellationToken);
-            if (document == null) return document;
+            IDocument document = await _browsingContext.OpenAsync(req => req.Content(body), cancellationToken);
+            if (document.Head is null) return document;
 
             // Create meta http-equiv tag
             IElement meta = document.CreateElement("meta");

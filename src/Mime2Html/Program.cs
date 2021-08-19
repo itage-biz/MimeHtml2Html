@@ -12,6 +12,7 @@ namespace Mime2Html
         [Argument(0)] private string Source { get; } = null!;
         private static void Main(string[] args) => CommandLineApplication.Execute<Program>(args);
 
+        // ReSharper disable once UnusedMember.Local
         private void OnExecute()
         {
             Console.OutputEncoding = Encoding.Unicode;
