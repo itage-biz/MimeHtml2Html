@@ -21,7 +21,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AngleSharp" Version="0.16.0" />
+        <PackageReference Include="AngleSharp" Version="0.16.1" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
         <PackageReference Include="MimeKitLite" Version="2.15.1" />
         <PackageReference Include="NUglify" Version="1.16.0" />
