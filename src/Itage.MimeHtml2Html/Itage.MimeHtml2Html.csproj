@@ -24,7 +24,7 @@
         <PackageReference Include="AngleSharp" Version="0.16.1" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
         <PackageReference Include="MimeKitLite" Version="2.15.1" />
-        <PackageReference Include="NUglify" Version="1.16.1" />
+        <PackageReference Include="NUglify" Version="1.19.2" />
         <PackageReference Include="SixLabors.ImageSharp" Version="1.0.4" />
     </ItemGroup>
 </Project>
